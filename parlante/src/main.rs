@@ -1,56 +1,78 @@
-use serde_json::json; 
-use reqwest::Client;
+use ratatui::{
+    layout::{Constraint, Direction, Layout},
+    widgets::{Block, Borders, Paragraph},
+    DefaultTerminal,
+};
+use crossterm::event::{self, Event, KeyCode};
 
-// 1. Data Structure
-struct LlamaClient {
-    http_client: Client,
-    url: String,
-}
+mod llama;
+use llama::LlamaClient;
 
-// 2. The Struct's methods
-impl LlamaClient {
-    fn new(port: u16) -> Self {
-        Self {
-            http_client: Client::new(),
-            url: format!("http://127.0.0.1:{}/completion", port),
-        }
-    }
-
-    //3. Action
-    async fn ask(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
-        let body = json!({
-            "prompt": format!("<|im_start|>user\n{}<|im_end|>\n<|im_start|>assitant\n", prompt),
-            "n_predict": 100
-        });
-
-        let res: serde_json::Value = self.http_client
-            .post(&self.url)
-            .json(&body)
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        // Extract the Text or Else....
-        let content = res["content"]
-            .as_str()
-            .ok_or("Failed to get content from Llama")?
-            .to_string();
-        
-            Ok(content)
-    }
+// PUT THE STRUCT HERE
+struct App {
+    input: String,
+    messages: Vec<String>,
+    ai: LlamaClient,
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Professional Use B )
-    let ai = LlamaClient::new(11343);
+async fn main() -> std::io::Result<()> {
+    let mut terminal = ratatui::init();
+    
+    // Initialize our state
+    let mut app = App {
+        input: String::new(),
+        messages: Vec::new(),
+        ai: LlamaClient::new(11343),
+    };
 
-    println!("Making some quantum connections");
+    let result = run_app(&mut terminal, &mut app).await;
+    ratatui::restore();
+    result
+}
 
-    let response = ai.ask("Tell me about the best Football Match in History, which is 2010 World Cup Final").await?;
+async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
+    loop {
+        terminal.draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Min(1),    // Chat History
+                    Constraint::Length(3), // Input Box
+                ])
+                .split(f.area());
+            
+            // Draw Chat History
+            let history_text = app.messages.join("\n");
+            f.render_widget(
+                Paragraph::new(history_text).block(Block::default().borders(Borders::ALL).title(" Chaty ")),
+                chunks[0],
+            );
 
-    println!("\nAI response: {}", response);
+            // Draw Input Box
+            f.render_widget(
+                Paragraph::new(app.input.as_str()).block(Block::default().borders(Borders::ALL).title(" User's Input ")),
+                chunks[1],
+            );
+        })?;
 
-    Ok(())
+        if let Event::Key(key) = event::read()? {
+            match key.code {
+                KeyCode::Char(c) => app.input.push(c),
+                KeyCode::Backspace => { app.input.pop(); },
+                KeyCode::Esc => break Ok(()),
+                KeyCode::Enter => {
+                    let user_text: String = app.input.drain(..).collect();
+                    app.messages.push(format!("You: {}", user_text));
+
+                    // This is where the "freeze" happens. 
+                    // We'll fix this with Channels next.
+                    if let Ok(response) = app.ai.ask(&user_text).await {
+                        app.messages.push(format!("AI: {}", response));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
 }
