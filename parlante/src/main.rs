@@ -1,6 +1,8 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Paragraph, Wrap},
+    text::{Line, Span},           // ADD THIS
+    style::{Color, Style, Stylize}, // ADD THIS
     DefaultTerminal,
 };
 use crossterm::event::{self, Event, KeyCode};
@@ -8,12 +10,10 @@ use crossterm::event::{self, Event, KeyCode};
 mod llama;
 use llama::LlamaClient;
 
-// PUT THE STRUCT HERE
-struct App {
-    input: String,
-    messages: Vec<String>,
-    ai: LlamaClient,
-}
+mod app;
+use app::App;
+
+
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -37,19 +37,19 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Min(1),    // Chat History
-                    Constraint::Length(3), // Input Box
+                    Constraint::Min(1),
+                    Constraint::Length(3),
                 ])
                 .split(f.area());
             
-            // Draw Chat History
-            let history_text = app.messages.join("\n");
-            f.render_widget(
-                Paragraph::new(history_text).block(Block::default().borders(Borders::ALL).title(" Chaty ")),
-                chunks[0],
-            );
+            // WRINKLE FIX: Paragraph can take a Vec<Line> directly. 
+            // We clone it because Paragraph needs ownership to draw.
+            let history = Paragraph::new(app.messages.clone()) 
+                .block(Block::default().borders(Borders::ALL).title(" Chaty "))
+                .wrap(Wrap { trim: true });
+            
+            f.render_widget(history, chunks[0]);
 
-            // Draw Input Box
             f.render_widget(
                 Paragraph::new(app.input.as_str()).block(Block::default().borders(Borders::ALL).title(" User's Input ")),
                 chunks[1],
@@ -63,12 +63,20 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                 KeyCode::Esc => break Ok(()),
                 KeyCode::Enter => {
                     let user_text: String = app.input.drain(..).collect();
-                    app.messages.push(format!("You: {}", user_text));
-
-                    // This is where the "freeze" happens. 
-                    // We'll fix this with Channels next.
+                    
+                    // User message: Label is white, but the text is Cyan
+                    app.messages.push(Line::from(vec![
+                        Span::raw("You: "),
+                        Span::styled(user_text.clone(), Style::default().fg(Color::Cyan)),
+                    ]));
+                
+                    // Ask the AI
                     if let Ok(response) = app.ai.ask(&user_text).await {
-                        app.messages.push(format!("AI: {}", response));
+                        // AI message: Label is white, but the response text is Yellow
+                        app.messages.push(Line::from(vec![
+                            Span::raw("AI: "),
+                            Span::styled(response, Style::default().fg(Color::Yellow)),
+                        ]));
                     }
                 }
                 _ => {}
