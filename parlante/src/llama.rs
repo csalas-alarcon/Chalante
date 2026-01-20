@@ -19,8 +19,9 @@ impl LlamaClient {
     //3. Action
     pub async fn ask(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
         let body = json!({
-            "prompt": format!("<|im_start|>user\n{}<|im_end|>\n<|im_start|>assitant\n", prompt),
-            "n_predict": 100
+            "prompt": format!("<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n{}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n", prompt),
+            "n_predict": 200,
+            "stop": ["<|eot_id|>", "<|start_header_id|>", "You:", "User:"] // Stop tokens!
         });
 
         let res: serde_json::Value = self.http_client
