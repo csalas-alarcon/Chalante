@@ -1,20 +1,17 @@
 // src/main.rs
 use ratatui::{
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph, Wrap},
-    text::{Line, Span},           // ADD THIS
-    style::{Color, Style, Stylize}, // ADD THIS
+    widgets::{Block, Borders, Paragraph, Wrap, List, ListItem, ListState},
+    text::{Line, Span},          
+    style::{Color, Style, Stylize}, 
     DefaultTerminal,
 };
 use crossterm::event::{self, Event, KeyCode};
 
 mod llama;
-use llama::LlamaClient;
 
 mod app;
-use app::App;
-use app::CurrentScreen;
-
+use app::{App, CurrentScreen};
 
 
 #[tokio::main]
@@ -22,12 +19,7 @@ async fn main() -> std::io::Result<()> {
     let mut terminal = ratatui::init();
     
     // Initialize our state
-    let mut app = App {
-        input: String::new(),
-        messages: Vec::new(),
-        ai: LlamaClient::new(11343),
-        current_screen: CurrentScreen::Welcome,
-    };
+    let mut app = App::new(11343);
 
     let result = run_app(&mut terminal, &mut app).await;
     ratatui::restore();
@@ -60,24 +52,54 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                 }
                 // The Chat Terminal
                 CurrentScreen::Chat => {
-                    let chunks = Layout::default()
-                        .direction(Direction::Vertical)
-                        .constraints([
-                            Constraint::Min(1),
-                            Constraint::Length(3),
-                        ])
+                    // We Split the Screen
+                    let main_layout = Layout::default()
+                        .direction(Direction::Horizontal)
+                        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
                         .split(f.area());
-                    
-                    let history = Paragraph::new(app.messages.clone()) 
-                        .block(Block::default().borders(Borders::ALL).title(" The Chat "))
-                        .wrap(Wrap { trim: true });
-                    
-                    f.render_widget(history, chunks[0]);
+                    // We Split the Left Side
+                    let sidebar= Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
+                        .split(main_layout[0]);
 
-                    f.render_widget(
-                        Paragraph::new(app.input.as_str()).block(Block::default().borders(Borders::ALL).title(" Your Input ")),
-                        chunks[1],
-                    );
+                    // Split the Right Side into Chat and Input
+                    let chat_area = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints([Constraint::Min(1), Constraint::Length(3)])
+                        .split(main_layout[1]);
+                    
+                    // The List (Top Left) - Ratatui::widgets::{List, ListItem};
+                    let items: Vec<ListItem> = 
+                        app.models
+                        .iter()
+                        .map(|m| ListItem::new(m.as_str()))
+                        .collect();
+                    
+                    let list = List::new(items)
+                        .block(Block::default().borders(Borders::ALL).title(" Available Models "))
+                        .highlight_style(Style::default().bg(Color::Green).fg(Color::Black))
+                        .highlight_symbol(">> ");
+                    
+                    let mut state = ListState::default();
+                    state.select(Some(app.selected_model_index));
+
+                    f.render_stateful_widget(list, sidebar[0], &mut state);
+
+                    // The Blank Box (Bottom Left)
+                    f.render_widget(Block::default().borders(Borders::ALL).title(" Stats "), sidebar[1]);
+                    
+                    // The Chat History (Top Right)
+                    let history = Paragraph::new(app.messages.clone()) 
+                    .block(Block::default().borders(Borders::ALL).title(" The Chat "))
+                    .wrap(Wrap { trim: true });
+
+                    f.render_widget(history, chat_area[0]);
+
+                    // The Input Box (Bottom Right)
+                    let input_box = Paragraph::new(app.input.as_str()).block(Block::default().borders(Borders::ALL).title(" Your Input "));
+                    f.render_widget(input_box, chat_area[1]);
+
                 }
             }
         })?;
@@ -116,6 +138,37 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                                     Span::styled(response, Style::default().fg(Color::Yellow)),
                                 ]));
                             }
+                        }
+
+                        KeyCode::Up => {
+                            if app.selected_model_index > 0 {
+                                app.selected_model_index -= 1;
+                            }
+                        }
+                        KeyCode::Down => {
+                            if app.selected_model_index < app.models.len() - 1 {
+                                app.selected_model_index += 1;
+                            }
+                        }
+                        KeyCode::Right => {
+                            let model_to_load = app.models[app.selected_model_index].clone();
+                        
+                            // 1. Create a specific copy just for the background thread
+                            let model_for_thread = model_to_load.clone(); 
+                            let ai_clone = app.ai.clone();
+                            
+                            tokio::spawn(async move {
+                                // This copy gets moved/consumed here
+                                let _ = ai_clone.switch_model(&model_for_thread).await;
+                            });
+                        
+                            // 2. Now the original 'model_to_load' is still available for the UI!
+                            app.messages.push(Line::from(vec![
+                                Span::styled(
+                                    format!("System: Loading {}...", model_to_load), 
+                                    Style::default().fg(Color::Red).italic()
+                                )
+                            ]));
                         }
                         _ => {}
                     }

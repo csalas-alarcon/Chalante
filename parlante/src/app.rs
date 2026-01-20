@@ -13,6 +13,8 @@ pub struct App {
     pub messages: Vec<Line<'static>>,
     pub ai: LlamaClient,
     pub current_screen: CurrentScreen,
+    pub models: Vec<String>,
+    pub selected_model_index: usize,
 }
 
 impl App {
@@ -22,6 +24,8 @@ impl App {
             messages: Vec::new(),
             ai: LlamaClient::new(port),
             current_screen: CurrentScreen::Welcome,
+            models: vec!["Llama 3.2 1B".into(), "Gemma 2B".into(), "Phi-3 Mini".into()],
+            selected_model_index: 0,
         }
     }
 }

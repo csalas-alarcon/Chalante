@@ -2,6 +2,7 @@ use serde_json::json;
 use reqwest::Client;
 
 // 1. Data Structure
+#[derive(Clone)]
 pub struct LlamaClient {
     pub http_client: Client,
     pub url: String,
@@ -39,5 +40,14 @@ impl LlamaClient {
             .to_string();
         
             Ok(content)
+    }
+
+    // 4. Switching Models
+    pub async fn switch_model(&self, model_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let url = format!("http://127.0.0.1:11343/models/load");
+        let body = serde_json::json!({ "model": model_name });
+
+        self.http_client.post(&url).json(&body).send().await?;
+        Ok(())
     }
 }
