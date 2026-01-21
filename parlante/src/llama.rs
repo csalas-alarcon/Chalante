@@ -45,7 +45,7 @@ impl LlamaClient {
     // 4. Switching Models
     pub async fn switch_model(&self, model_name: &str) -> Result<(), Box<dyn std::error::Error>> {
         let url = format!("http://127.0.0.1:11343/models/load");
-        let body = serde_json::json!({ "model": model_name });
+        let body = serde_json::json!({ "model": format!("parlante/models/{}", model_name) });
 
         self.http_client.post(&url).json(&body).send().await?;
         Ok(())

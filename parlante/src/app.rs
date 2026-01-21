@@ -24,7 +24,7 @@ impl App {
             messages: Vec::new(),
             ai: LlamaClient::new(port),
             current_screen: CurrentScreen::Welcome,
-            models: vec!["Llama 3.2 1B".into(), "Gemma 2B".into(), "Phi-3 Mini".into()],
+            models: vec!["smollm.gguf".into(), "qwen.gguf".into(), "danube.gguf".into()],
             selected_model_index: 0,
         }
     }
