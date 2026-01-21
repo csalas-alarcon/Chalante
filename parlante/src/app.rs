@@ -15,6 +15,7 @@ pub struct App {
     pub current_screen: CurrentScreen,
     pub models: Vec<String>,
     pub selected_model_index: usize,
+    pub current_model: String,
 }
 
 impl App {
@@ -26,6 +27,7 @@ impl App {
             current_screen: CurrentScreen::Welcome,
             models: vec!["phi2.gguf".into(), "qwen.gguf".into(), "danube.gguf".into()],
             selected_model_index: 0,
+            current_model : String::from("Danube")
         }
     }
 }

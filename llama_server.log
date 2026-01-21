@@ -132,79 +132,17 @@ How are you?<|im_end|>
 '
 main: server is listening on http://127.0.0.1:11343 - starting the main loop
 srv  update_slots: all slots are idle
-slot launch_slot_: id  0 | task 0 | processing task
-slot update_slots: id  0 | task 0 | new prompt, n_ctx_slot = 4096, n_keep = 0, n_prompt_tokens = 9
-slot update_slots: id  0 | task 0 | kv cache rm [0, end)
-slot update_slots: id  0 | task 0 | prompt processing progress, n_past = 9, n_tokens = 9, progress = 1.000000
-slot update_slots: id  0 | task 0 | prompt done, n_past = 9, n_tokens = 9
-slot      release: id  0 | task 0 | stop processing: n_past = 34, truncated = 0
-slot print_timing: id  0 | task 0 | 
-prompt eval time =      58.42 ms /     9 tokens (    6.49 ms per token,   154.06 tokens per second)
-       eval time =     462.62 ms /    26 tokens (   17.79 ms per token,    56.20 tokens per second)
-      total time =     521.04 ms /    35 tokens
-srv  update_slots: all slots are idle
-request: POST /completion 127.0.0.1 200
-slot launch_slot_: id  0 | task 27 | processing task
-slot update_slots: id  0 | task 27 | new prompt, n_ctx_slot = 4096, n_keep = 0, n_prompt_tokens = 9
-slot update_slots: id  0 | task 27 | need to evaluate at least 1 token to generate logits, n_past = 9, n_prompt_tokens = 9
-slot update_slots: id  0 | task 27 | kv cache rm [8, end)
-slot update_slots: id  0 | task 27 | prompt processing progress, n_past = 9, n_tokens = 1, progress = 0.111111
-slot update_slots: id  0 | task 27 | prompt done, n_past = 9, n_tokens = 1
-slot      release: id  0 | task 27 | stop processing: n_past = 34, truncated = 0
-slot print_timing: id  0 | task 27 | 
-prompt eval time =      28.58 ms /     1 tokens (   28.58 ms per token,    34.99 tokens per second)
-       eval time =     476.10 ms /    26 tokens (   18.31 ms per token,    54.61 tokens per second)
-      total time =     504.68 ms /    27 tokens
-srv  update_slots: all slots are idle
-request: POST /completion 127.0.0.1 200
+request: GET /props 127.0.0.1 200
+request: GET /props 127.0.0.1 200
+request: GET /props 127.0.0.1 200
 request: POST /models/load 127.0.0.1 404
-slot launch_slot_: id  0 | task 54 | processing task
-slot update_slots: id  0 | task 54 | new prompt, n_ctx_slot = 4096, n_keep = 0, n_prompt_tokens = 9
-slot update_slots: id  0 | task 54 | need to evaluate at least 1 token to generate logits, n_past = 9, n_prompt_tokens = 9
-slot update_slots: id  0 | task 54 | kv cache rm [8, end)
-slot update_slots: id  0 | task 54 | prompt processing progress, n_past = 9, n_tokens = 1, progress = 0.111111
-slot update_slots: id  0 | task 54 | prompt done, n_past = 9, n_tokens = 1
-slot      release: id  0 | task 54 | stop processing: n_past = 33, truncated = 0
-slot print_timing: id  0 | task 54 | 
-prompt eval time =      29.63 ms /     1 tokens (   29.63 ms per token,    33.75 tokens per second)
-       eval time =     438.78 ms /    25 tokens (   17.55 ms per token,    56.98 tokens per second)
-      total time =     468.41 ms /    26 tokens
-srv  update_slots: all slots are idle
-request: POST /completion 127.0.0.1 200
-slot launch_slot_: id  0 | task 80 | processing task
-slot update_slots: id  0 | task 80 | new prompt, n_ctx_slot = 4096, n_keep = 0, n_prompt_tokens = 10
-slot update_slots: id  0 | task 80 | kv cache rm [4, end)
-slot update_slots: id  0 | task 80 | prompt processing progress, n_past = 10, n_tokens = 6, progress = 0.600000
-slot update_slots: id  0 | task 80 | prompt done, n_past = 10, n_tokens = 6
-slot      release: id  0 | task 80 | stop processing: n_past = 31, truncated = 0
-slot print_timing: id  0 | task 80 | 
-prompt eval time =      45.87 ms /     6 tokens (    7.65 ms per token,   130.80 tokens per second)
-       eval time =     385.52 ms /    22 tokens (   17.52 ms per token,    57.07 tokens per second)
-      total time =     431.40 ms /    28 tokens
-srv  update_slots: all slots are idle
-request: POST /completion 127.0.0.1 200
-slot launch_slot_: id  0 | task 103 | processing task
-slot update_slots: id  0 | task 103 | new prompt, n_ctx_slot = 4096, n_keep = 0, n_prompt_tokens = 13
-slot update_slots: id  0 | task 103 | kv cache rm [4, end)
-slot update_slots: id  0 | task 103 | prompt processing progress, n_past = 13, n_tokens = 9, progress = 0.692308
-slot update_slots: id  0 | task 103 | prompt done, n_past = 13, n_tokens = 9
-slot      release: id  0 | task 103 | stop processing: n_past = 61, truncated = 0
-slot print_timing: id  0 | task 103 | 
-prompt eval time =      67.29 ms /     9 tokens (    7.48 ms per token,   133.74 tokens per second)
-       eval time =     886.85 ms /    49 tokens (   18.10 ms per token,    55.25 tokens per second)
-      total time =     954.14 ms /    58 tokens
-srv  update_slots: all slots are idle
-request: POST /completion 127.0.0.1 200
+request: GET /props 127.0.0.1 200
+request: GET /props 127.0.0.1 200
+request: GET /props 127.0.0.1 200
 request: POST /models/load 127.0.0.1 404
-slot launch_slot_: id  0 | task 153 | processing task
-slot update_slots: id  0 | task 153 | new prompt, n_ctx_slot = 4096, n_keep = 0, n_prompt_tokens = 9
-slot update_slots: id  0 | task 153 | kv cache rm [4, end)
-slot update_slots: id  0 | task 153 | prompt processing progress, n_past = 9, n_tokens = 5, progress = 0.555556
-slot update_slots: id  0 | task 153 | prompt done, n_past = 9, n_tokens = 5
-slot      release: id  0 | task 153 | stop processing: n_past = 38, truncated = 0
-slot print_timing: id  0 | task 153 | 
-prompt eval time =      47.58 ms /     5 tokens (    9.52 ms per token,   105.09 tokens per second)
-       eval time =     544.75 ms /    30 tokens (   18.16 ms per token,    55.07 tokens per second)
-      total time =     592.32 ms /    35 tokens
-srv  update_slots: all slots are idle
-request: POST /completion 127.0.0.1 200
+request: GET /props 127.0.0.1 200
+request: GET /props 127.0.0.1 200
+request: POST /models/load 127.0.0.1 404
+request: GET /props 127.0.0.1 200
+request: GET /props 127.0.0.1 200
+request: GET /props 127.0.0.1 200

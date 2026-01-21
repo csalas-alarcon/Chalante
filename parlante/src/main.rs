@@ -87,8 +87,13 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                     f.render_stateful_widget(list, sidebar[0], &mut state);
 
                     // The Blank Box (Bottom Left)
-                    f.render_widget(Block::default().borders(Borders::ALL).title(" Stats "), sidebar[1]);
-                    
+                    // Render the 'stats' variable we just created
+
+                    let stats = Paragraph::new(app.current_model.as_str())
+                    .block(Block::default().borders(Borders::ALL).title(" Stats "));
+
+                    f.render_widget(stats, sidebar[1]);
+
                     // The Chat History (Top Right)
                     let history = Paragraph::new(app.messages.clone()) 
                     .block(Block::default().borders(Borders::ALL).title(" The Chat "))
@@ -169,6 +174,11 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                                     Style::default().fg(Color::Red).italic()
                                 )
                             ]));
+
+                        }
+                        KeyCode::Left => {
+                            app.current_model = app.ai.get_current_model().await.unwrap_or_else(|_| "Error loading model".to_string());
+
                         }
                         _ => {}
                     }

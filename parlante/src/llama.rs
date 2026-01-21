@@ -58,4 +58,20 @@ impl LlamaClient {
         self.http_client.post(&url).json(&body).send().await?;
         Ok(())
     }
+
+    pub async fn get_current_model(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let res: serde_json::Value = self.http_client
+            .get("http://127.0.0.1:11343/props")
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        let full_path = res["default_generation_settings"]["model"]
+            .as_str()
+            .unwrap_or("Unknown");
+
+        let filename = full_path.split('/').last().unwrap_or(full_path).to_string();
+        Ok(filename)
+    }
 }
