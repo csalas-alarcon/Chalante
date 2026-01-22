@@ -1,4 +1,5 @@
 // src/main.rs
+// Generic Imports
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph, Wrap, List, ListItem, ListState},
@@ -8,23 +9,26 @@ use ratatui::{
 };
 use crossterm::event::{self, Event, KeyCode};
 
+// My Imports
 mod llama;
-
 mod app;
 use app::{App, CurrentScreen};
+mod ui;
+use ui::{show_welcome, show_chat};
 
-
+// ENTRANCE
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let mut terminal = ratatui::init();
     
     // Initialize our state
-    let mut app = App::new(11343);
+    let mut app = App::new();
 
     let result = run_app(&mut terminal, &mut app).await;
     ratatui::restore();
     result
 }
+
 
 async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
     loop {
@@ -32,79 +36,11 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
             match app.current_screen {
                 // The Welcome Screen
                 CurrentScreen::Welcome => {
-                    let logo = r#"
-   ______ __  __ ___     __     ___     _   __ ______ ______
-  / ____// / / //   |   / /    /   |   / | / //_  __// ____/
- / /    / /_/ // /| |  / /    / /| |  /  |/ /  / /  / __/   
-/ /___ / __  // ___ | / /___ / ___ | / /|  /  / /  / /___   
-\____//_/ /_//_/  |_|/_____//_/  |_|/_/ |_/  /_/  /_____/   
-
-       -- The Quantum Chat Terminal --
-        Press [ENTER] to initialize
-    "#;
-
-                    let welcome_block = Paragraph::new(logo)
-                        .alignment(ratatui::layout::Alignment::Center)
-                        .style(Style::default().fg(Color::Magenta).bold())
-                        .block(Block::default().borders(Borders::ALL));
-
-                    f.render_widget(welcome_block, f.area());
+                    show_welcome(f);
                 }
                 // The Chat Terminal
                 CurrentScreen::Chat => {
-                    // We Split the Screen
-                    let main_layout = Layout::default()
-                        .direction(Direction::Horizontal)
-                        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
-                        .split(f.area());
-                    // We Split the Left Side
-                    let sidebar= Layout::default()
-                        .direction(Direction::Vertical)
-                        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
-                        .split(main_layout[0]);
-
-                    // Split the Right Side into Chat and Input
-                    let chat_area = Layout::default()
-                        .direction(Direction::Vertical)
-                        .constraints([Constraint::Min(1), Constraint::Length(3)])
-                        .split(main_layout[1]);
-                    
-                    // The List (Top Left) - Ratatui::widgets::{List, ListItem};
-                    let items: Vec<ListItem> = 
-                        app.models
-                        .iter()
-                        .map(|m| ListItem::new(m.as_str()))
-                        .collect();
-                    
-                    let list = List::new(items)
-                        .block(Block::default().borders(Borders::ALL).title(" Available Models "))
-                        .highlight_style(Style::default().bg(Color::Green).fg(Color::Black))
-                        .highlight_symbol(">> ");
-                    
-                    let mut state = ListState::default();
-                    state.select(Some(app.selected_model_index));
-
-                    f.render_stateful_widget(list, sidebar[0], &mut state);
-
-                    // The Blank Box (Bottom Left)
-                    // Render the 'stats' variable we just created
-
-                    let stats = Paragraph::new(app.current_model.as_str())
-                    .block(Block::default().borders(Borders::ALL).title(" Stats "));
-
-                    f.render_widget(stats, sidebar[1]);
-
-                    // The Chat History (Top Right)
-                    let history = Paragraph::new(app.messages.clone()) 
-                    .block(Block::default().borders(Borders::ALL).title(" The Chat "))
-                    .wrap(Wrap { trim: true });
-
-                    f.render_widget(history, chat_area[0]);
-
-                    // The Input Box (Bottom Right)
-                    let input_box = Paragraph::new(app.input.as_str()).block(Block::default().borders(Borders::ALL).title(" Your Input "));
-                    f.render_widget(input_box, chat_area[1]);
-
+                    show_chat(f, app);
                 }
             }
         })?;
@@ -125,7 +61,12 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                     match key.code {
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); },
-                        KeyCode::Esc => break Ok(()),
+                        KeyCode::Esc => {
+                            if let Some(mut child) = app.llama_process.take() {
+                                let _ = child.kill();
+                            }
+                            break Ok(());
+                        }
                         KeyCode::Enter => {
                             let user_text: String = app.input.drain(..).collect();
                             
@@ -174,11 +115,21 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                                     Style::default().fg(Color::Red).italic()
                                 )
                             ]));
-
                         }
                         KeyCode::Left => {
-                            app.current_model = app.ai.get_current_model().await.unwrap_or_else(|_| "Error loading model".to_string());
-
+                            if let Ok(raw_json) = app.ai.get_models_info_raw().await {
+                                // This will put the literal {"models": [...]} string in the box
+                                app.current_model = raw_json; 
+                            }
+                        }
+                        KeyCode::F(1) => {
+                            if app.llama_process.is_none() {
+                                app.messages.push(Line::from(vec![
+                                    Span::styled("System: Starting Llama Server...", Style::default().fg(Color::Green))
+                                ]));
+                                let child = app.ai.start_llama().await;
+                                app.llama_process = Some(child);
+                            }
                         }
                         _ => {}
                     }

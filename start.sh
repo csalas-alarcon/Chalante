@@ -27,19 +27,3 @@ if [ ! -f "models/danube.gguf" ]; then
 else
     echo "Danube already exists. Skipping."
 fi
-
-
-echo " --- Starting LLAMA Server --- "
-PROJECT_ROOT=$(pwd)
-$HOME/llama_bin/build/bin/llama-server \
-    -m "$PROJECT_ROOT/models/danube.gguf" \
-    --port 11343 > llama_server.log 2>&1 &
-
-SERVER_PID=$!
-
-echo " --- Launching Chalante TUI --- "
-cd parlante
-cargo run
-
-echo " --- Shutting down AI Server --- "
-kill $SERVER_PID
