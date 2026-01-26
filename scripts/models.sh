@@ -1,12 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# models.sh - Just downloads initial dummy models
+
+set -e #Exit if Error
+mkdir -p models
 
 echo " --- Downloading Tiny Models --- "
-
 
 # 1. Phi2
 if [ ! -f "models/phi2.gguf" ]; then
     echo "Downloading Phi2..."
-    mkdir models
     curl -L "https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_K_M.gguf?download=true" -o models/phi2.gguf
 else
     echo "Phi2 already exists. Skipping."
