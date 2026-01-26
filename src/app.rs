@@ -5,6 +5,7 @@ use crate::llama::LlamaClient; // Use 'crate::' to find your other module
 
 pub enum CurrentScreen {
     Welcome,
+    Config,
     Chat,
 }
 

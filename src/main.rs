@@ -14,7 +14,7 @@ mod llama;
 mod app;
 use app::{App, CurrentScreen};
 mod ui;
-use ui::{show_welcome, show_chat};
+use ui::{show_welcome, show_config, show_chat};
 
 // ENTRANCE
 #[tokio::main]
@@ -38,6 +38,10 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                 CurrentScreen::Welcome => {
                     show_welcome(f);
                 }
+                // The Config Screen
+                CurrentScreen::Config => {
+                    show_config(f);
+                }
                 // The Chat Terminal
                 CurrentScreen::Chat => {
                     show_chat(f, app);
@@ -49,6 +53,15 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
             match app.current_screen {
                 // Welcome Screen Ones
                 CurrentScreen::Welcome => {
+                    if let KeyCode::Enter = key.code {
+                        app.current_screen = CurrentScreen::Config;
+                    }
+                    if let KeyCode::Esc = key.code {
+                        break Ok(());
+                    }
+                }
+
+                CurrentScreen::Config => {
                     if let KeyCode::Enter = key.code {
                         app.current_screen = CurrentScreen::Chat;
                     }

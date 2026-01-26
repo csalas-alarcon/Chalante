@@ -4,7 +4,7 @@ use crate::app::App; // Import App
 use ratatui::Frame;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph, Wrap, List, ListItem, ListState},
+    widgets::{Block, Borders, Paragraph, Wrap, List, ListItem, ListState, Gauge},
     text::{Line, Span},          
     style::{Color, Style, Stylize}, 
     DefaultTerminal,
@@ -24,13 +24,55 @@ pub fn show_welcome(f: &mut Frame) {
  "#;
 
     let welcome_block = Paragraph::new(logo)
-    .alignment(ratatui::layout::Alignment::Center)
-    .style(Style::default().fg(Color::Magenta).bold())
-    .block(Block::default()
-    .borders(Borders::ALL));
+        .alignment(ratatui::layout::Alignment::Center)
+        .style(Style::default().fg(Color::Magenta).bold())
+        .block(Block::default()
+        .borders(Borders::ALL));
 
     f.render_widget(welcome_block, f.area());
 }
+
+// CONFIGURATION SCREEN
+pub fn show_config(f: &mut Frame) {
+    let logo = r#"
+    ______ __  __ ___     __     ___     _   __ ______ ______
+   / ____// / / //   |   / /    /   |   / | / //_  __// ____/
+  / /    / /_/ // /| |  / /    / /| |  /  |/ /  / /  / __/   
+ / /___ / __  // ___ | / /___ / ___ | / /|  /  / /  / /___   
+ \____//_/ /_//_/  |_|/_____//_/  |_|/_/ |_/  /_/  /_____/   
+ 
+     -- The Efficient Approach to AI --
+      This is the Config Page
+  "#;
+
+    let screen = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(10), Constraint::Percentage(40)])
+        .split(f.area());
+
+    let title = Paragraph::new(logo)
+        .alignment(ratatui::layout::Alignment::Center)
+        .style(Style::default().fg(Color::Magenta).bold())
+        .block(Block::default()
+        .borders(Borders::ALL));
+
+    let progress_bar = Gauge::default()
+        .block(Block::default().title("Downloading Llama.cpp").borders(Borders::ALL))
+        .gauge_style(Style::default().fg(Color::Magenta))
+        .percent(66);
+
+    let text = Paragraph::new("Lorem Ipsum")
+        .alignment(ratatui::layout::Alignment::Center)
+        .style(Style::default().fg(Color::Green).bold())
+        .block(Block::default()
+        .borders(Borders::ALL));
+
+    f.render_widget(title, screen[0]);
+    f.render_widget(progress_bar, screen[1]);
+    f.render_widget(text, screen[2]);
+
+}
+
 // CHAT SCREEN
 pub fn show_chat(f: &mut Frame, app: &App) {
     // Split the Screen
