@@ -8,6 +8,10 @@ use std::process::{Command, Stdio};
 pub struct LlamaClient {
     pub http_client: Client,
     pub url: String,
+    pub user_text: String,
+    pub history: Vec<Line<'static>>,
+    pub models: Vec<String>,
+    pub engine_on: bool,
 }
 
 // LLamaClient Methods
@@ -16,20 +20,28 @@ impl LlamaClient {
     pub fn new() -> Self {
         Self {
             http_client: Client::new(),
-            url: format!("http://127.0.0.1:11343/completion"),
+            url: format!("http://127.0.0.1:11343"),
+            user_text: String::new(),
+            history: Vec::new(),
+            models: Vec::new(),
+            engine_on: 
         }
     }
 
     pub async fn start_llama(&self) -> std::process::Child {
-        Command::new("../llama_bin/build/bin/llama-server")
+        Command::new("llama.cpp/build/bin/llama-server")
         .arg("--models-dir")
-        .arg("../models")
+        .arg("models")
         .arg("--port")
         .arg("11343")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
         .expect("Failed to start llama-server")
+    }
+
+    pub async fn get_health(&self) {
+        
     }
 
     pub async fn switch_model(&self, model: &str) -> Result<(), Box<dyn std::error::Error>> {

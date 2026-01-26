@@ -59,7 +59,7 @@ pub fn show_config(f: &mut Frame) {
     let progress_bar = Gauge::default()
         .block(Block::default().title("Downloading Llama.cpp").borders(Borders::ALL))
         .gauge_style(Style::default().fg(Color::Magenta))
-        .percent(66);
+        .percent(app.download_progress);
 
     let text = Paragraph::new("Lorem Ipsum")
         .alignment(ratatui::layout::Alignment::Center)

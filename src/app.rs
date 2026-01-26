@@ -10,14 +10,17 @@ pub enum CurrentScreen {
 }
 
 pub struct App {
-    pub input: String,
-    pub messages: Vec<Line<'static>>,
-    pub ai: LlamaClient,
     pub current_screen: CurrentScreen,
     pub models: Vec<String>,
     pub selected_model_index: usize,
     pub current_model: String,
     pub llama_process: Option<std::process::Child>,
+}
+
+pub struct App {
+    pub current_screen: CurrentScreen,
+    pub download_progress: u16,
+    pub engine_installed: bool;
 }
 
 impl App {

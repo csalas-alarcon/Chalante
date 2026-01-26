@@ -9,12 +9,15 @@ use ratatui::{
 };
 use crossterm::event::{self, Event, KeyCode};
 
+use tokio::sync::mpsc;
+
 // My Imports
 mod llama;
 mod app;
 use app::{App, CurrentScreen};
 mod ui;
 use ui::{show_welcome, show_config, show_chat};
+mod download;
 
 // ENTRANCE
 #[tokio::main]
@@ -23,14 +26,15 @@ async fn main() -> std::io::Result<()> {
     
     // Initialize our state
     let mut app = App::new();
+    let mut client = LlamaClient::new();
 
-    let result = run_app(&mut terminal, &mut app).await;
+    let result = run(&mut terminal, &mut app).await;
     ratatui::restore();
     result
 }
 
 
-async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
+async fn run(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
     loop {
         terminal.draw(|f| {
             match app.current_screen {
@@ -40,6 +44,11 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                 }
                 // The Config Screen
                 CurrentScreen::Config => {
+                    if download_progress <= 0 {
+                        if let Ok(progress) = rx.try_recv() {
+                            app.download_progress = progress;
+                        }
+                    }
                     show_config(f);
                 }
                 // The Chat Terminal
@@ -68,31 +77,36 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                     if let KeyCode::Esc = key.code {
                         break Ok(());
                     }
+                    if let KeyCode::q = key.code {
+                        let (tx, mut rx) = mpsc::channel(1);
+
+                        // Spawn the downloader
+                        tokio::spawn(async move {
+                            download::install_engine(tx).await;
+                        });
+                    }
                 }
                 // The Chat Ones
                 CurrentScreen::Chat => {
                     match key.code {
-                        KeyCode::Char(c) => app.input.push(c),
-                        KeyCode::Backspace => { app.input.pop(); },
+                        KeyCode::Char(c) => client.user_text.push(c),
+                        KeyCode::Backspace => client.input.pop(),
                         KeyCode::Esc => {
-                            if let Some(mut child) = app.llama_process.take() {
-                                let _ = child.kill();
-                            }
                             break Ok(());
                         }
                         KeyCode::Enter => {
-                            let user_text: String = app.input.drain(..).collect();
+                            let input: String = client.user_text.drain(..).collect();
                             
-                            // User message: Label is white, but the text is Cyan
-                            app.messages.push(Line::from(vec![
+                            // User message added
+                            client.history.push(Line::from(vec![
                                 Span::raw("You: "),
-                                Span::styled(user_text.clone(), Style::default().fg(Color::Cyan)),
+                                Span::styled(input.clone(), Style::default().fg(Color::Cyan)),
                             ]));
                         
-                            // Ask the AI
-                            if let Ok(response) = app.ai.ask(&user_text).await {
+                            // AI response added
+                            if let Ok(response) = client.ask(&input).await {
                                 // AI message: Label is white, but the response text is Yellow
-                                app.messages.push(Line::from(vec![
+                                client.history.push(Line::from(vec![
                                     Span::raw("AI: "),
                                     Span::styled(response, Style::default().fg(Color::Yellow)),
                                 ]));
@@ -128,21 +142,6 @@ async fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Resu
                                     Style::default().fg(Color::Red).italic()
                                 )
                             ]));
-                        }
-                        KeyCode::Left => {
-                            if let Ok(raw_json) = app.ai.get_models_info_raw().await {
-                                // This will put the literal {"models": [...]} string in the box
-                                app.current_model = raw_json; 
-                            }
-                        }
-                        KeyCode::F(1) => {
-                            if app.llama_process.is_none() {
-                                app.messages.push(Line::from(vec![
-                                    Span::styled("System: Starting Llama Server...", Style::default().fg(Color::Green))
-                                ]));
-                                let child = app.ai.start_llama().await;
-                                app.llama_process = Some(child);
-                            }
                         }
                         _ => {}
                     }
