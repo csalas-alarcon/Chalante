@@ -1,6 +1,7 @@
 
 // src/ui.rs
 use crate::app::App; // Import App
+use crate::llama::LlamaClient; // Import Client
 use ratatui::Frame;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
@@ -33,7 +34,7 @@ pub fn show_welcome(f: &mut Frame) {
 }
 
 // CONFIGURATION SCREEN
-pub fn show_config(f: &mut Frame) {
+pub fn show_config(f: &mut Frame, app: &App) {
     let logo = r#"
     ______ __  __ ___     __     ___     _   __ ______ ______
    / ____// / / //   |   / /    /   |   / | / //_  __// ____/
@@ -74,7 +75,7 @@ pub fn show_config(f: &mut Frame) {
 }
 
 // CHAT SCREEN
-pub fn show_chat(f: &mut Frame, app: &App) {
+pub fn show_chat(f: &mut Frame, app: &App, client: &LlamaClient) {
     // Split the Screen
     let screen = Layout::default()
         .direction(Direction::Horizontal)
@@ -104,7 +105,7 @@ pub fn show_chat(f: &mut Frame, app: &App) {
     state.select(Some(app.selected_model_index));
 
     // THE STATS [0][1]
-    let stats = Paragraph::new(app.current_model.as_str())
+    let stats = Paragraph::new("Nothing happens")
         .block(Block::default()
         .borders(Borders::ALL)
         .title(" Stats "))
@@ -117,12 +118,12 @@ pub fn show_chat(f: &mut Frame, app: &App) {
         .split(screen[1]);
     
     // THE CHAT [1][0]
-    let chat = Paragraph::new(app.messages.clone()) 
+    let chat = Paragraph::new(client.history.clone()) 
         .block(Block::default().borders(Borders::ALL).title(" The Chat "))
         .wrap(Wrap { trim: true });
 
     // THE INPUT [1][1]
-    let input_box = Paragraph::new(app.input.as_str())
+    let input_box = Paragraph::new(client.user_text.as_str())
         .block(Block::default()
         .borders(Borders::ALL)
         .title(" Your Input "));

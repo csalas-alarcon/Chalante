@@ -9,10 +9,9 @@ use ratatui::{
 };
 use crossterm::event::{self, Event, KeyCode};
 
-use tokio::sync::mpsc;
-
 // My Imports
 mod llama;
+use llama::{LlamaClient};
 mod app;
 use app::{App, CurrentScreen};
 mod ui;
@@ -22,19 +21,19 @@ mod download;
 // ENTRANCE
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    // Initialize 
     let mut terminal = ratatui::init();
-    
-    // Initialize our state
     let mut app = App::new();
     let mut client = LlamaClient::new();
 
-    let result = run(&mut terminal, &mut app).await;
+    // Run Main Loop
+    let result = run(&mut terminal, &mut app, &mut client).await;
     ratatui::restore();
     result
 }
 
 
-async fn run(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
+async fn run(terminal: &mut DefaultTerminal, app: &mut App, client: &mut LlamaClient) -> std::io::Result<()> {
     loop {
         terminal.draw(|f| {
             match app.current_screen {
@@ -44,16 +43,11 @@ async fn run(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<(
                 }
                 // The Config Screen
                 CurrentScreen::Config => {
-                    if download_progress <= 0 {
-                        if let Ok(progress) = rx.try_recv() {
-                            app.download_progress = progress;
-                        }
-                    }
-                    show_config(f);
+                    show_config(f, app);
                 }
                 // The Chat Terminal
                 CurrentScreen::Chat => {
-                    show_chat(f, app);
+                    show_chat(f, app, client);
                 }
             }
         })?;
@@ -77,23 +71,19 @@ async fn run(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<(
                     if let KeyCode::Esc = key.code {
                         break Ok(());
                     }
-                    if let KeyCode::q = key.code {
-                        let (tx, mut rx) = mpsc::channel(1);
-
-                        // Spawn the downloader
-                        tokio::spawn(async move {
-                            download::install_engine(tx).await;
-                        });
-                    }
                 }
                 // The Chat Ones
                 CurrentScreen::Chat => {
                     match key.code {
+                        // Writing
                         KeyCode::Char(c) => client.user_text.push(c),
-                        KeyCode::Backspace => client.input.pop(),
+                        // Deleting
+                        KeyCode::Backspace => { client.user_text.pop(); },
+                        // Exiting
                         KeyCode::Esc => {
                             break Ok(());
                         }
+                        // Asking
                         KeyCode::Enter => {
                             let input: String = client.user_text.drain(..).collect();
                             
@@ -112,7 +102,7 @@ async fn run(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<(
                                 ]));
                             }
                         }
-
+                        // List Commands
                         KeyCode::Up => {
                             if app.selected_model_index > 0 {
                                 app.selected_model_index -= 1;
@@ -122,26 +112,6 @@ async fn run(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<(
                             if app.selected_model_index < app.models.len() - 1 {
                                 app.selected_model_index += 1;
                             }
-                        }
-                        KeyCode::Right => {
-                            let model_to_load = app.models[app.selected_model_index].clone();
-                        
-                            // 1. Create a specific copy just for the background thread
-                            let model_for_thread = model_to_load.clone(); 
-                            let ai_clone = app.ai.clone();
-                            
-                            tokio::spawn(async move {
-                                // This copy gets moved/consumed here
-                                let _ = ai_clone.switch_model(&model_for_thread).await;
-                            });
-                        
-                            // 2. Now the original 'model_to_load' is still available for the UI!
-                            app.messages.push(Line::from(vec![
-                                Span::styled(
-                                    format!("System: Loading {}...", model_to_load), 
-                                    Style::default().fg(Color::Red).italic()
-                                )
-                            ]));
                         }
                         _ => {}
                     }

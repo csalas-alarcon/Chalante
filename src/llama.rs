@@ -2,15 +2,16 @@ use serde::Deserialize;
 use serde_json::json; 
 use reqwest::Client;
 use std::process::{Command, Stdio};
+use ratatui::text::Line;
 
 // LlamaClient Struct
 #[derive(Clone)]
 pub struct LlamaClient {
-    pub http_client: Client,
+    pub client: Client,
     pub url: String,
     pub user_text: String,
     pub history: Vec<Line<'static>>,
-    pub models: Vec<String>,
+    pub models: String,
     pub engine_on: bool,
 }
 
@@ -19,16 +20,17 @@ impl LlamaClient {
     // Creation
     pub fn new() -> Self {
         Self {
-            http_client: Client::new(),
+            client: Client::new(),
             url: format!("http://127.0.0.1:11343"),
             user_text: String::new(),
             history: Vec::new(),
-            models: Vec::new(),
-            engine_on: 
+            models: String::new(),
+            engine_on: false,
         }
     }
 
-    pub async fn start_llama(&self) -> std::process::Child {
+    // Once installed, Starts Router Mode
+    pub async fn start_llama(&mut self) -> std::process::Child {
         Command::new("llama.cpp/build/bin/llama-server")
         .arg("--models-dir")
         .arg("models")
@@ -38,45 +40,49 @@ impl LlamaClient {
         .stderr(Stdio::null())
         .spawn()
         .expect("Failed to start llama-server")
+
+        //self.engine_on = true;
     }
 
-    pub async fn get_health(&self) {
+    // GET Requests
+    pub async fn get_health(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let res: serde_json::Value = self.client.get(format!("{}/health", &self.url))
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        Ok(res.to_string())
+    }
+
+    pub async fn get_models(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let res: serde_json::Value = self.client.get(format!("{}/models", &self.url))
+            .send()    
+            .await?
+            .json()
+            .await?;
         
+        Ok(res.to_string())
     }
 
-    pub async fn switch_model(&self, model: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // POST Requests
+    pub async fn load_model(&self, model: &str) -> Result<String, Box<dyn std::error::Error>> {
         let body = json!({
             "model": model
         });
-
-        let load_url = self.url.replace("/completion", "/models/load");
-
-        let response = self.http_client
-            .post(&load_url)
-            .header("Content-Type", "application/json")
+        let res: serde_json::Value = self.client.post(format!("{}/models/load", &self.url))
             .json(&body)
             .send()
-            .await?;
-        
-        if response.status().is_success() {
-            Ok(())
-        } else {
-            let err_text = response.text().await?;
-            Err(format!("Server failed to load model: {}", err_text).into())
-        }
-    }
-
-    pub async fn get_models_info_raw(&self) -> Result<String, Box<dyn std::error::Error>> {
-        let models_url = self.url.replace("/completion", "/models");
-
-        let response_text = self.http_client
-            .get(&models_url)
-            .send()
             .await?
-            .text()
+            .json()
             .await?;
-        
-        Ok(response_text)
+
+        let mut content = res["succes"]
+            .as_str()
+            .ok_or("Failed to get content")?
+            .to_string();
+
+        Ok(content)
     }
 
     // Query
@@ -90,13 +96,13 @@ impl LlamaClient {
             "cache_prompt": true
         });
         // Petition
-        let res: serde_json::Value = self.http_client
-            .post(&self.url)
+        let res: serde_json::Value = self.client.post(format!("{}/completion", &self.url))
             .json(&body)
             .send()
             .await?
             .json()
             .await?;
+
         // Answer Processing
         let mut content = res["content"]
             .as_str()

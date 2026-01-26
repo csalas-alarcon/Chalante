@@ -1,15 +1,10 @@
 [package]
-name = "parlante"
+name = "charlante"
 version = "0.1.0"
 edition = "2024"
 
-[features]
-cuda = []
-
-[build-dependencies]
-cmake = "0.1"
-
 [dependencies]
+cmake = "0.1.57"
 crossterm = "0.29.0"
 ratatui = "0.30.0"
 reqwest = { version = "0.13.1", features = ["json"] }
