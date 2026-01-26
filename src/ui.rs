@@ -34,21 +34,23 @@ pub fn show_welcome(f: &mut Frame) {
 }
 
 // CONFIGURATION SCREEN
-pub fn show_config(f: &mut Frame, app: &App) {
-    let logo = r#"
-    ______ __  __ ___     __     ___     _   __ ______ ______
-   / ____// / / //   |   / /    /   |   / | / //_  __// ____/
-  / /    / /_/ // /| |  / /    / /| |  /  |/ /  / /  / __/   
- / /___ / __  // ___ | / /___ / ___ | / /|  /  / /  / /___   
- \____//_/ /_//_/  |_|/_____//_/  |_|/_/ |_/  /_/  /_____/   
- 
-     -- The Efficient Approach to AI --
-      This is the Config Page
+pub fn show_config(f: &mut Frame, app: &App, client: &LlamaClient) {
+    let logo = r#" 
+      CONFIG PAGE
+
+From here you control the whole platform and interact
+with its API to get things done. Here are some structions.
+
+To install the inference engine ->  "install engine"
+To list cached models           ->  "list models"
+To load a specifig model        ->  "load <model>.gguf"
+
+||| Work in Progress -> Press [enter] to go to chat area |||
   "#;
 
     let screen = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(40), Constraint::Percentage(10), Constraint::Percentage(40)])
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(30), Constraint::Percentage(10)])
         .split(f.area());
 
     let title = Paragraph::new(logo)
@@ -57,20 +59,20 @@ pub fn show_config(f: &mut Frame, app: &App) {
         .block(Block::default()
         .borders(Borders::ALL));
 
+    let text = Paragraph::new(client.user_text.as_str())
+        .alignment(ratatui::layout::Alignment::Left)
+        .style(Style::default().fg(Color::Green).bold())
+        .block(Block::default()
+        .borders(Borders::LEFT));
+
     let progress_bar = Gauge::default()
         .block(Block::default().title("Downloading Llama.cpp").borders(Borders::ALL))
         .gauge_style(Style::default().fg(Color::Magenta))
         .percent(app.download_progress);
 
-    let text = Paragraph::new("Lorem Ipsum")
-        .alignment(ratatui::layout::Alignment::Center)
-        .style(Style::default().fg(Color::Green).bold())
-        .block(Block::default()
-        .borders(Borders::ALL));
-
     f.render_widget(title, screen[0]);
-    f.render_widget(progress_bar, screen[1]);
-    f.render_widget(text, screen[2]);
+    f.render_widget(text, screen[1]);
+    f.render_widget(progress_bar, screen[2]);
 
 }
 

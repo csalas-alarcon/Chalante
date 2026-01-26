@@ -24,4 +24,8 @@ impl App {
             selected_model_index: 0,
         }
     }
+
+    pub fn to_chat(&mut self) {
+        self.current_screen = CurrentScreen::Chat;
+    }
 }

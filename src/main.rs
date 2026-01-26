@@ -1,4 +1,5 @@
 // src/main.rs
+
 // Generic Imports
 use ratatui::{
     layout::{Constraint, Direction, Layout},
@@ -7,6 +8,7 @@ use ratatui::{
     style::{Color, Style, Stylize}, 
     DefaultTerminal,
 };
+
 use crossterm::event::{self, Event, KeyCode};
 
 // My Imports
@@ -32,7 +34,6 @@ async fn main() -> std::io::Result<()> {
     result
 }
 
-
 async fn run(terminal: &mut DefaultTerminal, app: &mut App, client: &mut LlamaClient) -> std::io::Result<()> {
     loop {
         terminal.draw(|f| {
@@ -43,7 +44,7 @@ async fn run(terminal: &mut DefaultTerminal, app: &mut App, client: &mut LlamaCl
                 }
                 // The Config Screen
                 CurrentScreen::Config => {
-                    show_config(f, app);
+                    show_config(f, app, client);
                 }
                 // The Chat Terminal
                 CurrentScreen::Chat => {
@@ -54,25 +55,35 @@ async fn run(terminal: &mut DefaultTerminal, app: &mut App, client: &mut LlamaCl
         // We Check for Keyboard Actions
         if let Event::Key(key) = event::read()? {
             match app.current_screen {
-                // Welcome Screen Ones
+                // Welcome Ones
                 CurrentScreen::Welcome => {
-                    if let KeyCode::Enter = key.code {
-                        app.current_screen = CurrentScreen::Config;
-                    }
-                    if let KeyCode::Esc = key.code {
-                        break Ok(());
+                    match key.code {
+                        KeyCode::Enter => {
+                            app.current_screen = CurrentScreen::Config;
+                        }
+                        KeyCode::Esc => {
+                            break Ok(());
+                        }
+                        _ => {}
                     }
                 }
-
+                // Config Screen Ones
                 CurrentScreen::Config => {
-                    if let KeyCode::Enter = key.code {
-                        app.current_screen = CurrentScreen::Chat;
-                    }
-                    if let KeyCode::Esc = key.code {
-                        break Ok(());
+                    match key.code {
+                        KeyCode::Enter => {
+                            client.parsing(app);
+                        }
+                        KeyCode::Esc => {
+                            break Ok(());
+                        }
+                        // Writing
+                        KeyCode::Char(c) => client.user_text.push(c),
+                        // Deleting
+                        KeyCode::Backspace => { client.user_text.pop(); }
+                        _ => {}
                     }
                 }
-                // The Chat Ones
+                // Chat Ones
                 CurrentScreen::Chat => {
                     match key.code {
                         // Writing

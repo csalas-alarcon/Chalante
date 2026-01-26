@@ -1,8 +1,15 @@
+// src/llama.rs
+
+// Generic Imports
 use serde::Deserialize;
 use serde_json::json; 
 use reqwest::Client;
 use std::process::{Command, Stdio};
 use ratatui::text::Line;
+
+// My modules
+use crate::App;
+use crate::download::install_engine;
 
 // LlamaClient Struct
 #[derive(Clone)]
@@ -77,7 +84,7 @@ impl LlamaClient {
             .json()
             .await?;
 
-        let mut content = res["succes"]
+        let mut content = res["success"]
             .as_str()
             .ok_or("Failed to get content")?
             .to_string();
@@ -115,5 +122,18 @@ impl LlamaClient {
             content = content.replace("Assistant:", "").trim().to_string();
         }
         Ok(content)
+    }
+
+    // Parsing
+    pub fn parsing(&mut self, app: &mut App) {
+        let text: String = self.user_text.drain(..).collect();
+
+        match text.as_str() {
+            "go chat" => app.to_chat(),
+            //"get health" => self.get_health(),
+            //"list models" => self.get_models(),
+            //"install engine" => install_engine(),
+            _ => {},
+        }
     }
 }
