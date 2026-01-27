@@ -9,7 +9,7 @@ use ratatui::text::Line;
 
 // My modules
 use crate::App;
-use crate::download::install_engine;
+use crate::download::{install_engine, install_models};
 
 // LlamaClient Struct
 #[derive(Clone)]
@@ -75,7 +75,7 @@ impl LlamaClient {
     // POST Requests
     pub async fn load_model(&self, model: &str) -> Result<String, Box<dyn std::error::Error>> {
         let body = json!({
-            "model": model
+            "model": "qwen"
         });
         let res: serde_json::Value = self.client.post(format!("{}/models/load", &self.url))
             .json(&body)
@@ -96,6 +96,7 @@ impl LlamaClient {
     pub async fn ask(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
         // Formulation
         let body = json!({
+            "model": "qwen",
             "prompt": format!("\nUser: {}\nAssistant:", prompt),
             "n_predict": 200,
             "temperature": 0.2,
@@ -125,14 +126,17 @@ impl LlamaClient {
     }
 
     // Parsing
-    pub fn parsing(&mut self, app: &mut App) {
+    pub async fn parsing(&mut self, app: &mut App) {
         let text: String = self.user_text.drain(..).collect();
 
         match text.as_str() {
             "go chat" => app.to_chat(),
-            //"get health" => self.get_health(),
-            //"list models" => self.get_models(),
-            //"install engine" => install_engine(),
+            "get health" => { let _ = self.get_health().await; },
+            "list models" => { let _ = self.get_models().await; },
+            "install engine" => { let _ = install_engine().await; },
+            "install models" => { let _ = install_models().await; }
+            "start server" => { let _ = self.start_llama().await; }
+            "load model" => { let _ = self.load_model("qwen").await;}
             _ => {},
         }
     }

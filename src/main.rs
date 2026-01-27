@@ -71,7 +71,7 @@ async fn run(terminal: &mut DefaultTerminal, app: &mut App, client: &mut LlamaCl
                 CurrentScreen::Config => {
                     match key.code {
                         KeyCode::Enter => {
-                            client.parsing(app);
+                            client.parsing(app).await;
                         }
                         KeyCode::Esc => {
                             break Ok(());
