@@ -1,5 +1,5 @@
-
 // src/ui.rs
+
 use crate::app::App; // Import App
 use crate::llama::LlamaClient; // Import Client
 use ratatui::Frame;

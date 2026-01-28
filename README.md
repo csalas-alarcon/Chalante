@@ -1,6 +1,61 @@
-## Welcome to Chalante, the AI chat that runs in your terminal.
+# Chalante
 
-Powered by Rust and the Inference Engine llama.cpp, this app answers the necessity to free our RAMs from the Browsers' Bloatware to make locally-hosted AI faster and cheaper. At the moment it only hosts some small local models but this ambitious project aims for full LLM Customization in the following versions. 
+**The Efficient Approach to AI.** A high-performance terminal chat interface powered by **Rust** and **llama.cpp**. Chalante eliminates browser bloat, giving your RAM back to the models that matter.
 
-26/01/2026
-First Stable Version
+## Quick Start
+
+### 1. Prerequisites
+
+Ensure you have the following installed on your system:
+
+* **Rust** (cargo, rustc)
+* **CMake** (required to build the inference engine)
+* **Git**
+
+### 2. Build & Run
+
+Clone the repository and launch the application:
+
+```bash
+git clone https://github.com/your-username/chalante
+cd chalante
+cargo run
+
+```
+
+---
+
+## Setup Instructions (Inside the App)
+
+Once the app is running, follow these steps in the **Config Page** to initialize your local AI:
+
+1. **Install Engine**: Type `install engine` + `[ENTER]`. This clones and builds `llama.cpp` using CMake.
+2. **Install Models**: Type `install models` + `[ENTER]`. This runs the internal script to fetch supported models (Phi2, Qwen, Danube).
+3. **Start Server**: Type `start server` + `[ENTER]`. This initializes the local inference server on port `11343`.
+4. **Load Model**: Type `load model` + `[ENTER]` to move the model into your VRAM/RAM.
+5. **Go to Chat**: Type `go chat` + `[ENTER]` to start the conversation.
+
+---
+
+## ⌨️ Controls
+
+| Key | Action |
+| --- | --- |
+| `[ENTER]` | Execute command / Send message |
+| `[ESC]` | Exit application |
+| `[UP/DOWN]` | Navigate model list (Chat Screen) |
+| `BACKSPACE` | Delete text |
+
+---
+
+## Features
+
+* **Zero Browser Overload**: Native terminal UI using `ratatui`.
+* **Automated Tooling**: Built-in engine compilation and model management.
+* **Local-First**: Complete privacy and performance by running 100% on your hardware.
+
+**Version:** 0.1.0 (Stable)
+
+**Date:** 28/01/2026
+
+---
