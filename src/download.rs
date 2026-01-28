@@ -1,8 +1,12 @@
+// src/download.rs
+
+// Generic Imports
 use std::process::Command;
 use std::path::Path;
 
+// Llama.cpp
 pub async fn install_engine() {
-    // 1. Check if cmake is even installed
+    // 1. CMake installed?
     let check_cmake = Command::new("cmake").arg("--version").output();
 
     if check_cmake.is_err() {
@@ -14,32 +18,27 @@ pub async fn install_engine() {
     if !Path::new("llama.cpp").exists() {
         let _ = Command::new("git")
             .args(["clone", "https://github.com/ggml-org/llama.cpp"])
-            .status();
+            .output();
     }
 
     // 3. Configure
     let config = Command::new("cmake")
         .args(["-B", "llama.cpp/build", "-S", "llama.cpp"])
-        .status();
+        .output();
 
     // 4. Build
-    if config.is_ok() && config.unwrap().success() {
+    if config.is_ok() {
         let _ = Command::new("cmake")
             .args(["--build", "llama.cpp/build", "--config", "Release", "-j8"])
-            .status();
+            .output();
     }
 }
 
+// Models: Phi2, Qwen, Danube
 pub async fn install_models() {
-    // We use "sh" to run the script to avoid permission issues
+    // Just executing the Script
     let status = Command::new("sh")
         .arg("./scripts/models.sh")
-        .status() // This actually RUNS the command
+        .output()
         .expect("Failed to execute models.sh");
-
-    if status.success() {
-        println!("Models installed successfully!");
-    } else {
-        eprintln!("Script failed with exit code: {:?}", status.code());
-    }
 }

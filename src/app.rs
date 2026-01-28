@@ -1,11 +1,13 @@
 //src/app.rs
 
+// Posible Screen
 pub enum CurrentScreen {
     Welcome,
     Config,
     Chat,
 }
 
+// App Struct
 pub struct App {
     pub current_screen: CurrentScreen,
     pub download_progress: u16,
@@ -14,6 +16,7 @@ pub struct App {
     pub selected_model_index: usize,
 }
 
+// App Methods
 impl App {
     pub fn new() -> Self {
         Self {
@@ -27,5 +30,9 @@ impl App {
 
     pub fn to_chat(&mut self) {
         self.current_screen = CurrentScreen::Chat;
+    }
+
+    pub fn to_config(&mut self) {
+        self.current_screen = CurrentScreen::Config;
     }
 }

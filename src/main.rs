@@ -2,13 +2,10 @@
 
 // Generic Imports
 use ratatui::{
-    layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph, Wrap, List, ListItem, ListState},
     text::{Line, Span},          
     style::{Color, Style, Stylize}, 
     DefaultTerminal,
 };
-
 use crossterm::event::{self, Event, KeyCode};
 
 // My Imports
@@ -18,6 +15,7 @@ mod app;
 use app::{App, CurrentScreen};
 mod ui;
 use ui::{show_welcome, show_config, show_chat};
+mod download;
 
 // ENTRANCE
 #[tokio::main]

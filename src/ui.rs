@@ -49,8 +49,8 @@ else:
 Get list of Cached Models   ->  "list models"
 Go to chat Area             ->  "go chat"
 
-Once in the chat area you can:
-Go to Config Pag            -> "go config"
+Once in the chat area you can (Work in Progress):
+Go to Config Page           -> "go config"
   "#;
 
     let screen = Layout::default()
