@@ -17,6 +17,7 @@ pub struct LlamaClient {
     pub client: Client,
     pub url: String,
     pub user_text: String,
+    pub ter_text: String,
     pub history: Vec<Line<'static>>,
     pub models: String,
     pub engine_on: bool,
@@ -30,6 +31,7 @@ impl LlamaClient {
             client: Client::new(),
             url: format!("http://127.0.0.1:11343"),
             user_text: String::new(),
+            ter_text: String::new(),
             history: Vec::new(),
             models: String::new(),
             engine_on: false,
@@ -43,6 +45,7 @@ impl LlamaClient {
         .arg("models")
         .arg("--port")
         .arg("11343")
+        .arg("--log-disable")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()

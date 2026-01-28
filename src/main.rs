@@ -18,7 +18,6 @@ mod app;
 use app::{App, CurrentScreen};
 mod ui;
 use ui::{show_welcome, show_config, show_chat};
-mod download;
 
 // ENTRANCE
 #[tokio::main]

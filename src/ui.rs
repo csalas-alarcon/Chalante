@@ -36,25 +36,30 @@ pub fn show_welcome(f: &mut Frame) {
 // CONFIGURATION SCREEN
 pub fn show_config(f: &mut Frame, app: &App, client: &LlamaClient) {
     let logo = r#" 
-      CONFIG PAGE
+                CONFIG PAGE
+From here you control the whole platform.
+Follow this steps if this' your first time:
 
-From here you control the whole platform and interact
-with its API to get things done. Here are some structions.
+Install llama.cpp           ->  "install engine"
+Install Initial models      ->  "install models"
+Start llama-server          ->  "start server"
+Load the First Model        ->  "load model"
 
-To install the inference engine ->  "install engine"
-To list cached models           ->  "list models"
-To load a specifig model        ->  "load <model>.gguf"
+else:
+Get list of Cached Models   ->  "list models"
+Go to chat Area             ->  "go chat"
 
-||| Work in Progress -> Press [enter] to go to chat area |||
+Once in the chat area you can:
+Go to Config Pag            -> "go config"
   "#;
 
     let screen = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(60), Constraint::Percentage(30), Constraint::Percentage(10)])
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(10), Constraint::Percentage(25), Constraint::Percentage(5)])
         .split(f.area());
 
     let title = Paragraph::new(logo)
-        .alignment(ratatui::layout::Alignment::Center)
+        .alignment(ratatui::layout::Alignment::Left)
         .style(Style::default().fg(Color::Magenta).bold())
         .block(Block::default()
         .borders(Borders::ALL));
@@ -65,6 +70,11 @@ To load a specifig model        ->  "load <model>.gguf"
         .block(Block::default()
         .borders(Borders::LEFT));
 
+    let output = Paragraph::new(client.ter_text.as_str())
+        .alignment(ratatui::layout::Alignment::Left)
+        .block(Block::default()
+        .borders(Borders::LEFT));
+
     let progress_bar = Gauge::default()
         .block(Block::default().title("Downloading Llama.cpp").borders(Borders::ALL))
         .gauge_style(Style::default().fg(Color::Magenta))
@@ -72,7 +82,8 @@ To load a specifig model        ->  "load <model>.gguf"
 
     f.render_widget(title, screen[0]);
     f.render_widget(text, screen[1]);
-    f.render_widget(progress_bar, screen[2]);
+    f.render_widget(output, screen[2]);
+    f.render_widget(progress_bar, screen[3]);
 
 }
 
