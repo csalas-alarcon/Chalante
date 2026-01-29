@@ -29,6 +29,9 @@ async fn main() -> std::io::Result<()> {
     let result = run(&mut terminal, &mut app, &mut client).await;
     
     // Clean
+    let _ = std::process::Command::new("pkill")
+        .args(["-f", "llama-server"])
+        .spawn();
     ratatui::restore();
     result
 }

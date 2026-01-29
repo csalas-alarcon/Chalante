@@ -46,6 +46,7 @@ pub struct LlamaClient {
     pub tx: UnboundedSender<String>,
     pub rx: UnboundedReceiver<String>,
     // To get a Hold of the Server
+    pub actual_model: String,
 }
 
 // LLamaClient Methods
@@ -64,6 +65,7 @@ impl LlamaClient {
             engine_on: false,
             tx,
             rx,
+            actual_model: String::new(),
         }
     }
 
@@ -124,7 +126,7 @@ impl LlamaClient {
     }
 
     // POST Requests
-    pub async fn load_model(&self, model: &str) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn load_model(&mut self, model: &str) -> Result<String, Box<dyn std::error::Error>> {
         let body = json!({
             "model": model
         });
@@ -140,13 +142,14 @@ impl LlamaClient {
             .ok_or("Failed to get content")?
             .to_string();
 
+        self.actual_model = model;
         Ok(content)
     }
 
     pub async fn ask(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
         // Formulation
         let body = json!({
-            "model": "qwen",
+            "model": self.actual_model,
             "prompt": format!("\nUser: {}\nAssistant:", prompt),
             "n_predict": 200,
             "temperature": 0.2,
