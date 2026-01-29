@@ -3,6 +3,7 @@
 use crate::app::App; // Import App
 use crate::llama::LlamaClient; // Import Client
 use ratatui::Frame;
+use ratatui::style::Modifier;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph, Wrap, List, ListItem, ListState, Gauge},
@@ -35,55 +36,77 @@ pub fn show_welcome(f: &mut Frame) {
 
 // CONFIGURATION SCREEN
 pub fn show_config(f: &mut Frame, app: &App, client: &LlamaClient) {
-    let logo = r#" 
-                CONFIG PAGE
-From here you control the whole platform.
-Follow this steps if this' your first time:
+
+    let instructions = r#"From here you control the whole platform.
+Follow this steps if it's your first time:
 
 Install llama.cpp           ->  "install engine"
 Install Initial models      ->  "install models"
 Start llama-server          ->  "start server"
-Load the First Model        ->  "load model"
+Load the Default Model      ->  "load model"
 
-else:
+To load a specific model (quen, phi2 or danube):
+-> "load model <model>"
+
+For Diagnostics you (here and in the Chat Area):
 Get list of Cached Models   ->  "list models"
-Go to chat Area             ->  "go chat"
+Get Server Status           ->  "get health"
 
-Once in the chat area you can (Work in Progress):
-Go to Config Page           -> "go config"
-  "#;
+To go from place to place:
+Go to chat Area (Config)    ->  "go chat"
+Go to Config Page (Chat)    -> "go config""#;
 
     let screen = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(60), Constraint::Percentage(10), Constraint::Percentage(25), Constraint::Percentage(5)])
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
         .split(f.area());
 
-    let title = Paragraph::new(logo)
+    // Split the Info Area
+    let interactive_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
+        .split(screen[1]);
+
+    // 2. Build the Paragraph
+    let config_panel = Paragraph::new(instructions)
         .alignment(ratatui::layout::Alignment::Left)
-        .style(Style::default().fg(Color::Magenta).bold())
-        .block(Block::default()
-        .borders(Borders::ALL));
+        .style(Style::default().fg(Color::Magenta))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                // THE TRICK: Center the Title here
+                .title(" CONFIG PAGE ")
+                .title_alignment(ratatui::layout::Alignment::Center) 
+                .title_style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Magenta))
+        );
 
     let text = Paragraph::new(client.user_text.as_str())
         .alignment(ratatui::layout::Alignment::Left)
         .style(Style::default().fg(Color::Green).bold())
         .block(Block::default()
-        .borders(Borders::LEFT));
+        .borders(Borders::ALL)
+        .title(" Command-Line "))
+        .wrap(Wrap { trim: false });
 
-    let output = Paragraph::new(client.ter_text.as_str())
+    let output = Paragraph::new(client.ter_text.join("\n"))
         .alignment(ratatui::layout::Alignment::Left)
         .block(Block::default()
-        .borders(Borders::LEFT));
+        .borders(Borders::ALL)
+        .title(" Output "))
+        .wrap(Wrap { trim: false });
 
+    
+    /* Future Feature for Installing LLama.cpp
     let progress_bar = Gauge::default()
         .block(Block::default().title("Downloading Llama.cpp").borders(Borders::ALL))
         .gauge_style(Style::default().fg(Color::Magenta))
         .percent(app.download_progress);
-
-    f.render_widget(title, screen[0]);
-    f.render_widget(text, screen[1]);
-    f.render_widget(output, screen[2]);
     f.render_widget(progress_bar, screen[3]);
+    */
+    f.render_widget(config_panel, screen[0]);
+    f.render_widget(text, interactive_area[0]);
+    f.render_widget(output, interactive_area[1]);
+    
 
 }
 
@@ -118,7 +141,7 @@ pub fn show_chat(f: &mut Frame, app: &App, client: &LlamaClient) {
     state.select(Some(app.selected_model_index));
 
     // THE STATS [0][1]
-    let stats = Paragraph::new("Nothing happens")
+    let stats = Paragraph::new(client.ter_text.join("\n"))
         .block(Block::default()
         .borders(Borders::ALL)
         .title(" Stats "))

@@ -38,7 +38,7 @@ pub struct LlamaClient {
     pub client: Client,
     pub url: String,
     pub user_text: String,
-    pub ter_text: String,
+    pub ter_text: Vec<String>,
     pub history: Vec<Line<'static>>,
     pub models: String,
     pub engine_on: bool,
@@ -57,7 +57,7 @@ impl LlamaClient {
             client: Client::new(),
             url: format!("http://127.0.0.1:11343"),
             user_text: String::new(),
-            ter_text: String::new(),
+            ter_text: Vec::new(),
             history: Vec::new(),
             models: String::new(),
             engine_on: false,
@@ -138,7 +138,7 @@ impl LlamaClient {
             .json()
             .await?;
 
-        let mut content = res["success"]
+        let content = res["success"]
             .as_str()
             .ok_or("Failed to get content")?
             .to_string();
@@ -180,9 +180,13 @@ impl LlamaClient {
 
     // This method should be called in your main loop every "frame" or "tick"
     pub fn update_terminal_text(&mut self) {
-        // "try_recv" is non-blocking. It checks if there's a new line from the script.
         while let Ok(msg) = self.rx.try_recv() {
-            self.ter_text = msg; // Update the field Ratatui reads
+            self.ter_text.push(msg);
+            
+            // Keep only the last 5 lines
+            if self.ter_text.len() > 5 {
+                self.ter_text.remove(0);
+            }
         }
     }
 
@@ -204,7 +208,7 @@ impl LlamaClient {
                     "list models" => { 
                         if let Ok(models) = self.get_models().await {
                             // You might want to format this string slightly if it's raw JSON
-                            self.ter_text = self.readable(&raw_json);
+                            self.ter_text = self.readable(&models);
                         } else {
                             self.ter_text = "Error: Could not retrieve models".to_string();
                         }
@@ -231,6 +235,21 @@ impl LlamaClient {
                             self.ter_text = format!("Model Loaded: {}", res);
                         }
                     },
+                    "load model qwen" => { 
+                        if let Ok(res) = self.load_model("qwen").await {
+                            self.ter_text = format!("Model Loaded: {}", res);
+                        }
+                    },
+                    "load model phi2" => { 
+                        if let Ok(res) = self.load_model("phi2").await {
+                            self.ter_text = format!("Model Loaded: {}", res);
+                        }
+                    },
+                    "load model danube" => { 
+                        if let Ok(res) = self.load_model("danube").await {
+                            self.ter_text = format!("Model Loaded: {}", res);
+                        }
+                    },
                     _ => {},
                 }
             }
@@ -238,6 +257,21 @@ impl LlamaClient {
             CurrentScreen::Chat => {
                 match text.as_str() {
                     "go config" => app.to_config(),
+                    "get health" => { 
+                        if let Ok(health) = self.get_health().await {
+                            self.ter_text = health;
+                        } else {
+                            self.ter_text = "Error: Server unreachable".to_string();
+                        }
+                    },
+                    "list models" => { 
+                        if let Ok(models) = self.get_models().await {
+                            // You might want to format this string slightly if it's raw JSON
+                            self.ter_text = self.readable(&models);
+                        } else {
+                            self.ter_text = "Error: Could not retrieve models".to_string();
+                        }
+                    },
                     _ => {
                         // User message added
                         self.history.push(Line::from(vec![
