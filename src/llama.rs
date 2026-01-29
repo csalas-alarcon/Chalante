@@ -65,7 +65,7 @@ impl LlamaClient {
             engine_on: false,
             tx,
             rx,
-            actual_model: String::new(),
+            actual_model: String::from("qwen"),
         }
     }
 
@@ -127,6 +127,7 @@ impl LlamaClient {
 
     // POST Requests
     pub async fn load_model(&mut self, model: &str) -> Result<String, Box<dyn std::error::Error>> {
+        self.actual_model = model.to_string();
         let body = json!({
             "model": model
         });
@@ -142,7 +143,7 @@ impl LlamaClient {
             .ok_or("Failed to get content")?
             .to_string();
 
-        self.actual_model = model;
+        
         Ok(content)
     }
 
