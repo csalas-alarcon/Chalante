@@ -1,16 +1,18 @@
 // src/ui.rs
 
-use crate::app::App; // Import App
-use crate::llama::LlamaClient; // Import Client
-use ratatui::Frame;
-use ratatui::style::Modifier;
+
+// Generic Imports
 use ratatui::{
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph, Wrap, List, ListItem, ListState, Gauge},
-    text::{Line, Span},          
-    style::{Color, Style, Stylize}, 
-    DefaultTerminal,
+    style::{Color, Modifier, Style, Stylize},
+    text::{Line, Span},
+    widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph, Wrap},
+    Frame,
 };
+
+// My Imports
+use crate::app::App; 
+use crate::llama::LlamaClient; 
 // WELCOME SCREEN
 pub fn show_welcome(f: &mut Frame) {
 
@@ -61,7 +63,7 @@ Go to Config Page (Chat)    -> "go config""#;
         .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
         .split(f.area());
 
-    // Split the Info Area
+    // Split the Interactive
     let interactive_area = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
@@ -72,9 +74,9 @@ Go to Config Page (Chat)    -> "go config""#;
         .alignment(ratatui::layout::Alignment::Left)
         .style(Style::default().fg(Color::Magenta))
         .block(
+            // Yep, this is just for the title
             Block::default()
                 .borders(Borders::ALL)
-                // THE TRICK: Center the Title here
                 .title(" CONFIG PAGE ")
                 .title_alignment(ratatui::layout::Alignment::Center) 
                 .title_style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Magenta))

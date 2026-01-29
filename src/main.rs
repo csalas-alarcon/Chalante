@@ -27,6 +27,8 @@ async fn main() -> std::io::Result<()> {
 
     // Run Main Loop
     let result = run(&mut terminal, &mut app, &mut client).await;
+    
+    // Clean
     ratatui::restore();
     result
 }

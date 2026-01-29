@@ -45,6 +45,7 @@ pub struct LlamaClient {
     // For Communication
     pub tx: UnboundedSender<String>,
     pub rx: UnboundedReceiver<String>,
+    // To get a Hold of the Server
 }
 
 // LLamaClient Methods
@@ -67,17 +68,13 @@ impl LlamaClient {
     }
 
     // Once installed, Starts Router Mode
-    pub async fn start_llama(&mut self) -> std::process::Child {
-        Command::new("llama.cpp/build/bin/llama-server")
-        .arg("--models-dir")
-        .arg("models")
-        .arg("--port")
-        .arg("11343")
-        .arg("--log-disable")
+    pub async fn start_llama(&mut self) {
+        let child = Command::new("llama.cpp/build/bin/llama-server")
+        .args(["--models-dir", "models", "--port", "11343", "--log-disable"])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .expect("Failed to start llama-server")
+        .expect("Failed to start llama-server");
 
         //self.engine_on = true;
     }
@@ -184,7 +181,7 @@ impl LlamaClient {
             self.ter_text.push(msg);
             
             // Keep only the last 5 lines
-            if self.ter_text.len() > 5 {
+            if self.ter_text.len() > 10 {
                 self.ter_text.remove(0);
             }
         }
@@ -200,17 +197,50 @@ impl LlamaClient {
                     "go chat" => app.to_chat(),
                     "get health" => { 
                         if let Ok(health) = self.get_health().await {
-                            self.ter_text = health;
+                            self.ter_text.clear(); // Clear old logs
+                            self.ter_text.push(health); // Add the new one
                         } else {
-                            self.ter_text = "Error: Server unreachable".to_string();
+                            self.ter_text.clear();
+                            self.ter_text.push("Error: Server unreachable".to_string());
                         }
                     },
                     "list models" => { 
                         if let Ok(models) = self.get_models().await {
-                            // You might want to format this string slightly if it's raw JSON
-                            self.ter_text = self.readable(&models);
+                            self.ter_text.clear();
+                            // readable returns a String, so we push it
+                            self.ter_text.push(self.readable(&models)); 
                         } else {
-                            self.ter_text = "Error: Could not retrieve models".to_string();
+                            self.ter_text.clear();
+                            self.ter_text.push("Error: Could not retrieve models".to_string());
+                        }
+                    },
+                    "start server" => { 
+                        let _ = self.start_llama().await; 
+                        self.ter_text.clear();
+                        self.ter_text.push("Llama Server Started".to_string());
+                    },
+                    "load model" => { 
+                        if let Ok(res) = self.load_model("qwen").await {
+                            self.ter_text.clear();
+                            self.ter_text.push(format!("Model Loaded: {}", res));
+                        }
+                    },
+                    "load model qwen" => { 
+                        if let Ok(res) = self.load_model("qwen").await {
+                            self.ter_text.clear();
+                            self.ter_text.push(format!("Model Loaded: {}", res));
+                        }
+                    },
+                    "load model phi2" => { 
+                        if let Ok(res) = self.load_model("phi2").await {
+                            self.ter_text.clear();
+                            self.ter_text.push(format!("Model Loaded: {}", res));
+                        }
+                    },
+                    "load model danube" => { 
+                        if let Ok(res) = self.load_model("danube").await {
+                            self.ter_text.clear();
+                            self.ter_text.push(format!("Model Loaded: {}", res));
                         }
                     },
                     "install engine" => {
@@ -226,30 +256,6 @@ impl LlamaClient {
                             install_models(tx).await;
                         });
                     },
-                    "start server" => { 
-                        let _ = self.start_llama().await; 
-                        self.ter_text = "Llama Server Started".to_string();
-                     },
-                    "load model" => { 
-                        if let Ok(res) = self.load_model("qwen").await {
-                            self.ter_text = format!("Model Loaded: {}", res);
-                        }
-                    },
-                    "load model qwen" => { 
-                        if let Ok(res) = self.load_model("qwen").await {
-                            self.ter_text = format!("Model Loaded: {}", res);
-                        }
-                    },
-                    "load model phi2" => { 
-                        if let Ok(res) = self.load_model("phi2").await {
-                            self.ter_text = format!("Model Loaded: {}", res);
-                        }
-                    },
-                    "load model danube" => { 
-                        if let Ok(res) = self.load_model("danube").await {
-                            self.ter_text = format!("Model Loaded: {}", res);
-                        }
-                    },
                     _ => {},
                 }
             }
@@ -259,17 +265,21 @@ impl LlamaClient {
                     "go config" => app.to_config(),
                     "get health" => { 
                         if let Ok(health) = self.get_health().await {
-                            self.ter_text = health;
+                            self.ter_text.clear(); // Clear old logs
+                            self.ter_text.push(health); // Add the new one
                         } else {
-                            self.ter_text = "Error: Server unreachable".to_string();
+                            self.ter_text.clear();
+                            self.ter_text.push("Error: Server unreachable".to_string());
                         }
                     },
                     "list models" => { 
                         if let Ok(models) = self.get_models().await {
-                            // You might want to format this string slightly if it's raw JSON
-                            self.ter_text = self.readable(&models);
+                            self.ter_text.clear();
+                            // readable returns a String, so we push it
+                            self.ter_text.push(self.readable(&models)); 
                         } else {
-                            self.ter_text = "Error: Could not retrieve models".to_string();
+                            self.ter_text.clear();
+                            self.ter_text.push("Error: Could not retrieve models".to_string());
                         }
                     },
                     _ => {
