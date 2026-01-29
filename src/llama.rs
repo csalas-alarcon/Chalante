@@ -6,6 +6,8 @@ use serde_json::json;
 use reqwest::Client;
 use std::process::{Command, Stdio};
 use ratatui::text::Line;
+// For Communication
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 // My Imports
 use crate::App;
@@ -20,12 +22,17 @@ pub struct LlamaClient {
     pub history: Vec<Line<'static>>,
     pub models: String,
     pub engine_on: bool,
+    // For Communication
+    pub tx: UnboundedSender<String>,
+    pub rx: UnboundedReceiver<String>,
 }
 
 // LLamaClient Methods
 impl LlamaClient {
     // Creation
     pub fn new() -> Self {
+        // For Communication
+        let (tx, rx) = unbounded_channel();
         Self {
             client: Client::new(),
             url: format!("http://127.0.0.1:11343"),
@@ -34,6 +41,8 @@ impl LlamaClient {
             history: Vec::new(),
             models: String::new(),
             engine_on: false,
+            tx,
+            rx,
         }
     }
 
@@ -126,6 +135,14 @@ impl LlamaClient {
         Ok(content)
     }
 
+    // This method should be called in your main loop every "frame" or "tick"
+    pub fn update_terminal_text(&mut self) {
+        // "try_recv" is non-blocking. It checks if there's a new line from the script.
+        while let Ok(msg) = self.rx.try_recv() {
+            self.ter_text = msg; // Update the field Ratatui reads
+        }
+    }
+
     // Parsing Commands
     pub async fn parsing(&mut self, app: &mut App) {
         let text: String = self.user_text.drain(..).collect();
@@ -134,18 +151,21 @@ impl LlamaClient {
             "go chat" => app.to_chat(),
             "get health" => { let _ = self.get_health().await; },
             "list models" => { let _ = self.get_models().await; },
-            "install engine" => { 
-                self.ter_text = "Loading".to_string();
-                let _ = install_engine().await;
-                self.ter_text = "Complete".to_string();
-             },
-            "install models" => { 
-                self.ter_text = "Loading".to_string();
-                let _ = install_models().await;
-                self.ter_text = "Complete".to_string()
-             }
-            "start server" => { let _ = self.start_llama().await; }
-            "load model" => { let _ = self.load_model("qwen").await;}
+            "install engine" => {
+                let tx = self.tx.clone();
+                // Spawn it so it doesn't block the TUI!
+                tokio::spawn(async move {
+                    install_engine(tx).await;
+                });
+            },
+            "install models" => {
+                let tx = self.tx.clone();
+                tokio::spawn(async move {
+                    install_models(tx).await;
+                });
+            },
+            "start server" => { let _ = self.start_llama().await; },
+            "load model" => { let _ = self.load_model("qwen").await;},
             _ => {},
         }
     }

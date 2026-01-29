@@ -1,44 +1,42 @@
 // src/download.rs
+use tokio::process::Command;
+use std::process::Stdio;
+use tokio::io::{BufReader, AsyncBufReadExt};
+use tokio::sync::mpsc::UnboundedSender;
 
-// Generic Imports
-use std::process::Command;
-use std::path::Path;
+pub async fn install_engine(tx: UnboundedSender<String>) {
+    let mut child = Command::new("sh")
+        .arg("./scripts/engine.sh")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped()) // This was leaking because it wasn't being read!
+        .spawn()
+        .expect("Failed to execute engine.sh");
 
-// Llama.cpp
-pub async fn install_engine() {
-    // 1. CMake installed?
-    let check_cmake = Command::new("cmake").arg("--version").output();
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap(); // Take the stderr handle!
 
-    if check_cmake.is_err() {
-        eprintln!("Error: 'cmake' is not installed. Please install it to build the engine.");
-        return; 
+    let mut stdout_reader = BufReader::new(stdout).lines();
+    let mut stderr_reader = BufReader::new(stderr).lines();
+
+    loop {
+        tokio::select! {
+            // Check stdout
+            res = stdout_reader.next_line() => {
+                match res {
+                    Ok(Some(line)) => { let _ = tx.send(line); }
+                    Ok(None) => break, // Exit loop when stdout closes
+                    Err(_) => break,
+                }
+            }
+            // Check stderr and send it to the SAME pipe
+            res = stderr_reader.next_line() => {
+                if let Ok(Some(line)) = res {
+                    let _ = tx.send(format!("[LOG] {}", line));
+                }
+            }
+        }
     }
-
-    // 2. Clone the repo
-    if !Path::new("llama.cpp").exists() {
-        let _ = Command::new("git")
-            .args(["clone", "https://github.com/ggml-org/llama.cpp"])
-            .output();
-    }
-
-    // 3. Configure
-    let config = Command::new("cmake")
-        .args(["-B", "llama.cpp/build", "-S", "llama.cpp"])
-        .output();
-
-    // 4. Build
-    if config.is_ok() {
-        let _ = Command::new("cmake")
-            .args(["--build", "llama.cpp/build", "--config", "Release", "-j8"])
-            .output();
-    }
-}
-
-// Models: Phi2, Qwen, Danube
-pub async fn install_models() {
-    // Just executing the Script
-    let status = Command::new("sh")
-        .arg("./scripts/models.sh")
-        .output()
-        .expect("Failed to execute models.sh");
+    
+    let _ = child.wait().await;
+    let _ = tx.send("Engine Installation Complete!".to_string());
 }

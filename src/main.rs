@@ -33,6 +33,8 @@ async fn main() -> std::io::Result<()> {
 
 async fn run(terminal: &mut DefaultTerminal, app: &mut App, client: &mut LlamaClient) -> std::io::Result<()> {
     loop {
+        // For Communication
+        client.update_terminal_text();
         terminal.draw(|f| {
             match app.current_screen {
                 // The Welcome Screen
