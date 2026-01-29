@@ -4,18 +4,18 @@
 use ratatui::{
     text::{Line, Span},          
     style::{Color, Style, Stylize}, 
-    DefaultTerminal,
-};
+    DefaultTerminal,};
 use crossterm::event::{self, Event, KeyCode};
-
+use std::time::Duration;
 // My Imports
-mod llama;
-use llama::{LlamaClient};
 mod app;
-use app::{App, CurrentScreen};
-mod ui;
-use ui::{show_welcome, show_config, show_chat};
 mod download;
+mod llama;
+mod ui;
+
+use app::{App, CurrentScreen};
+use llama::LlamaClient;
+use ui::{show_chat, show_config, show_welcome};
 
 // ENTRANCE
 #[tokio::main]
@@ -33,97 +33,78 @@ async fn main() -> std::io::Result<()> {
 
 async fn run(terminal: &mut DefaultTerminal, app: &mut App, client: &mut LlamaClient) -> std::io::Result<()> {
     loop {
-        // For Communication
+        // For Install Scripts
         client.update_terminal_text();
-        terminal.draw(|f| {
-            match app.current_screen {
+        // For Refreshing the Screen
+        terminal.draw(|f| match app.current_screen {
                 // The Welcome Screen
-                CurrentScreen::Welcome => {
-                    show_welcome(f);
-                }
+                CurrentScreen::Welcome => show_welcome(f),
                 // The Config Screen
-                CurrentScreen::Config => {
-                    show_config(f, app, client);
-                }
+                CurrentScreen::Config => show_config(f, app, client),
                 // The Chat Terminal
-                CurrentScreen::Chat => {
-                    show_chat(f, app, client);
-                }
-            }
+                CurrentScreen::Chat => show_chat(f, app, client),
         })?;
-        // We Check for Keyboard Actions
-        if let Event::Key(key) = event::read()? {
-            match app.current_screen {
-                // Welcome Ones
-                CurrentScreen::Welcome => {
-                    match key.code {
-                        KeyCode::Enter => {
-                            app.current_screen = CurrentScreen::Config;
+
+        // Run the Loop every 30ms
+        if event::poll(Duration::from_millis(30))? {
+            // We Check for Keyboard Actions
+            if let Event::Key(key) = event::read()? {
+                match app.current_screen {
+                    // Welcome Actions
+                    // This Screen is just for show, it's pretty. 
+                    // We can either exit or go to Config
+                    CurrentScreen::Welcome => {
+                        match key.code {
+                            KeyCode::Enter => app.to_config(),
+                            KeyCode::Esc => break Ok(()),
+                            _ => {}
                         }
-                        KeyCode::Esc => {
-                            break Ok(());
-                        }
-                        _ => {}
                     }
-                }
-                // Config Screen Ones
-                CurrentScreen::Config => {
-                    match key.code {
-                        KeyCode::Enter => {
-                            client.parsing(app).await;
+                    // Config Actions
+                    // From here everything is installed or initialized
+                    // Actions are exiting, go to chat AND (big AND) run commands.
+                    CurrentScreen::Config => {
+                        match key.code {
+                            KeyCode::Enter => {
+                                client.parsing(app).await;
+                            },
+                            KeyCode::Esc => break Ok(()),
+                            // Writing
+                            KeyCode::Char(c) => client.user_text.push(c),
+                            // Deleting
+                            KeyCode::Backspace => { client.user_text.pop(); },
+                            _ => {}
                         }
-                        KeyCode::Esc => {
-                            break Ok(());
-                        }
-                        // Writing
-                        KeyCode::Char(c) => client.user_text.push(c),
-                        // Deleting
-                        KeyCode::Backspace => { client.user_text.pop(); }
-                        _ => {}
                     }
-                }
-                // Chat Ones
-                CurrentScreen::Chat => {
-                    match key.code {
-                        // Writing
-                        KeyCode::Char(c) => client.user_text.push(c),
-                        // Deleting
-                        KeyCode::Backspace => { client.user_text.pop(); },
-                        // Exiting
-                        KeyCode::Esc => {
-                            break Ok(());
-                        }
-                        // Asking
-                        KeyCode::Enter => {
-                            let input: String = client.user_text.drain(..).collect();
+                    // Chat Actions
+                    // The Actual TUI Client, actions are literrally
+                    // ALL THE FEATURES
+                    CurrentScreen::Chat => {
+                        match key.code {
+                            // Asking
+                            KeyCode::Enter => {
+                                client.parsing(app).await;
+                            }
+                            // Exiting
+                            KeyCode::Esc => break Ok(()),
+                            // Writing
+                            KeyCode::Char(c) => client.user_text.push(c),
+                            // Deleting
+                            KeyCode::Backspace => { client.user_text.pop(); },
                             
-                            // User message added
-                            client.history.push(Line::from(vec![
-                                Span::raw("You: "),
-                                Span::styled(input.clone(), Style::default().fg(Color::Cyan)),
-                            ]));
-                        
-                            // AI response added
-                            if let Ok(response) = client.ask(&input).await {
-                                // AI message: Label is white, but the response text is Yellow
-                                client.history.push(Line::from(vec![
-                                    Span::raw("AI: "),
-                                    Span::styled(response, Style::default().fg(Color::Yellow)),
-                                ]));
+                            // Selection Commands
+                            KeyCode::Up => {
+                                if app.selected_model_index > 0 {
+                                    app.selected_model_index -= 1;
+                                }
                             }
-                        }
-                        // List Commands
-                        KeyCode::Up => {
-                            if app.selected_model_index > 0 {
-                                app.selected_model_index -= 1;
+                            KeyCode::Down => {
+                                if app.selected_model_index < app.models.len() - 1 {
+                                    app.selected_model_index += 1;
+                                }
                             }
+                            _ => {}
                         }
-                        KeyCode::Down => {
-                            if app.selected_model_index < app.models.len() - 1 {
-                                app.selected_model_index += 1;
-                            }
-                        }
-                        _ => {}
                     }
                 }
             }

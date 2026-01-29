@@ -5,13 +5,33 @@ use serde::Deserialize;
 use serde_json::json; 
 use reqwest::Client;
 use std::process::{Command, Stdio};
-use ratatui::text::Line;
+use ratatui::{
+    text::{Line, Span},          
+    style::{Color, Style, Stylize}, };
 // For Communication
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 // My Imports
-use crate::App;
+use crate::app::{ App, CurrentScreen };
 use crate::download::{install_engine, install_models};
+
+// Helper Structs (Just to read Models' JSON)
+#[derive(Deserialize)]
+struct ModelList {
+    data: Vec<ModelEntry>,
+}
+
+#[derive(Deserialize)]
+struct ModelEntry {
+    id: String,
+    status: ModelStatus,
+}
+
+#[derive(Deserialize)]
+struct ModelStatus {
+    value: String,
+}
+
 
 // LlamaClient Struct
 pub struct LlamaClient {
@@ -83,10 +103,33 @@ impl LlamaClient {
         Ok(res.to_string())
     }
 
+    pub fn readable(&self, raw_json: &str) -> String {
+        // 1. Parse the raw string into our structs
+        let parsed: Result<ModelList, _> = serde_json::from_str(raw_json);
+
+        match parsed {
+            Ok(list) => {
+                // 2. Map each entry into a clean string line
+                let lines: Vec<String> = list.data
+                    .iter()
+                    .map(|m| format!("- {}: [{}]", m.id, m.status.value))
+                    .collect();
+
+                // 3. Join them with newlines
+                if lines.is_empty() {
+                    "No models found.".to_string()
+                } else {
+                    lines.join("\n")
+                }
+            }
+            Err(_) => "Error: Could not parse model list.".to_string(),
+        }
+    }
+
     // POST Requests
     pub async fn load_model(&self, model: &str) -> Result<String, Box<dyn std::error::Error>> {
         let body = json!({
-            "model": "qwen"
+            "model": model
         });
         let res: serde_json::Value = self.client.post(format!("{}/models/load", &self.url))
             .json(&body)
@@ -146,27 +189,74 @@ impl LlamaClient {
     // Parsing Commands
     pub async fn parsing(&mut self, app: &mut App) {
         let text: String = self.user_text.drain(..).collect();
+        match app.current_screen {
+            // Parsing for the Config Page
+            CurrentScreen::Config => {
+                match text.as_str() {
+                    "go chat" => app.to_chat(),
+                    "get health" => { 
+                        if let Ok(health) = self.get_health().await {
+                            self.ter_text = health;
+                        } else {
+                            self.ter_text = "Error: Server unreachable".to_string();
+                        }
+                    },
+                    "list models" => { 
+                        if let Ok(models) = self.get_models().await {
+                            // You might want to format this string slightly if it's raw JSON
+                            self.ter_text = self.readable(&raw_json);
+                        } else {
+                            self.ter_text = "Error: Could not retrieve models".to_string();
+                        }
+                    },
+                    "install engine" => {
+                        let tx = self.tx.clone();
+                        // Spawn it so it doesn't block the TUI!
+                        tokio::spawn(async move {
+                            install_engine(tx).await;
+                        });
+                    },
+                    "install models" => {
+                        let tx = self.tx.clone();
+                        tokio::spawn(async move {
+                            install_models(tx).await;
+                        });
+                    },
+                    "start server" => { 
+                        let _ = self.start_llama().await; 
+                        self.ter_text = "Llama Server Started".to_string();
+                     },
+                    "load model" => { 
+                        if let Ok(res) = self.load_model("qwen").await {
+                            self.ter_text = format!("Model Loaded: {}", res);
+                        }
+                    },
+                    _ => {},
+                }
+            }
+            // Parsing for the Chat Page
+            CurrentScreen::Chat => {
+                match text.as_str() {
+                    "go config" => app.to_config(),
+                    _ => {
+                        // User message added
+                        self.history.push(Line::from(vec![
+                            Span::raw("You: "),
+                            Span::styled(text.clone(), Style::default().fg(Color::Cyan)),
+                        ]));
 
-        match text.as_str() {
-            "go chat" => app.to_chat(),
-            "get health" => { let _ = self.get_health().await; },
-            "list models" => { let _ = self.get_models().await; },
-            "install engine" => {
-                let tx = self.tx.clone();
-                // Spawn it so it doesn't block the TUI!
-                tokio::spawn(async move {
-                    install_engine(tx).await;
-                });
-            },
-            "install models" => {
-                let tx = self.tx.clone();
-                tokio::spawn(async move {
-                    install_models(tx).await;
-                });
-            },
-            "start server" => { let _ = self.start_llama().await; },
-            "load model" => { let _ = self.load_model("qwen").await;},
+                        // AI response added
+                        if let Ok(response) = self.ask(&text).await {
+                            self.history.push(Line::from(vec![
+                                Span::raw("AI: "),
+                                Span::styled(response, Style::default().fg(Color::Yellow)),
+                            ]));
+                        }
+                    }
+                }
+            }
             _ => {},
         }
+        
     }
 }
