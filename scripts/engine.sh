@@ -7,6 +7,9 @@ set -e #Exit if Error
 echo "--- Cloning the llama.cpp Repo ---"
 git clone https://github.com/ggml-org/llama.cpp
 
+# MOVE INTO FOLDER (THIS WON'T HAPPEN AGAIN)
+cd llama.cpp
+
 # CMake Config
 echo "--- Making the CMake Config ---"
 cmake -B build
