@@ -15,4 +15,4 @@ echo "--- Making the CMake Config ---"
 cmake -B build
 # Build
 echo "--- Compiling llama.cpp ---"
-cmake --build build --config Release -j 8
+cmake --build build --config Release -j $(nproc)
