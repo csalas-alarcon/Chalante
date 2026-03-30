@@ -1,6 +1,7 @@
 # === 1. Rust/Cargo Artifacts ===
 # Ignore the target directory where binaries and dependencies live
 /target/
+target
 # If you ever use cargo mutants for testing
 **/mutants.out/
 # Backup files from rustfmt
