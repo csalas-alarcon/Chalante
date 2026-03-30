@@ -41,3 +41,20 @@ Thumbs.db
 # If your start.sh generates temporary logs
 *.log
 .env
+
+# ANGULAR JS
+
+# Node
+node_modules/
+npm-debug.log
+
+# Angular
+.angular/
+dist/
+
+# Env
+.env
+
+# OS / Editor
+.DS_Store
+.vscode/
